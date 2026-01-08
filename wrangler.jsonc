@@ -21,8 +21,14 @@
       "bucket_name": "crow-core-organization-service-store"
     }
   ],
+  "routes": [
+    { "pattern": "internal.orgs.crowai.dev", "custom_domain": true }
+  ],
   "env": {
     "dev": {
+      "routes": [
+        { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true }
+      ],
       "d1_databases": [
         {
           "binding": "DB",
