@@ -1,10 +1,13 @@
-import { createRoute } from '@hono/zod-openapi';
+import { createRoute, z } from '@hono/zod-openapi';
 import {
+  ContextGenerationResponseSchema,
   CreateOrgBuilderSchema,
   FinalizeOrgBuilderSchema,
   HelloWorldSchema,
+  OrganizationContextSchema,
   OrganizationSchema,
   OrgBuilderSchema,
+  TriggerContextGenerationSchema,
 } from './types';
 
 export const HelloWorldRoute = createRoute({
@@ -102,6 +105,55 @@ export const GetOrganizationByBetterAuthIdRoute = createRoute({
     },
     404: {
       description: 'Organization not found',
+    },
+  },
+});
+
+export const TriggerContextGenerationRoute = createRoute({
+  method: 'post',
+  path: '/api/v1/organizations/{id}/context/trigger',
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: TriggerContextGenerationSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    202: {
+      content: {
+        'application/json': {
+          schema: ContextGenerationResponseSchema,
+        },
+      },
+      description: 'Context generation triggered (async)',
+    },
+    404: {
+      description: 'Organization not found',
+    },
+  },
+});
+
+export const GetOrganizationContextRoute = createRoute({
+  method: 'get',
+  path: '/api/v1/organizations/{id}/context',
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: OrganizationContextSchema,
+        },
+      },
+      description: 'Organization context found',
+    },
+    404: {
+      description: 'Context not found',
     },
   },
 });

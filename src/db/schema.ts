@@ -17,3 +17,12 @@ export const organization = sqliteTable('organization', {
   createdAt: integer('createdAt', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp' }).notNull(),
 });
+
+export const organizationContext = sqliteTable('organization_context', {
+  id: text('id').primaryKey(),
+  organizationId: text('organizationId').notNull(),
+  crawlId: text('crawlId').notNull(),
+  contextType: text('contextType').notNull().default('ai_generated_summary'),
+  structuredData: text('structuredData', { mode: 'json' }).notNull(),
+  generatedAt: integer('generatedAt', { mode: 'timestamp' }).notNull(),
+});
