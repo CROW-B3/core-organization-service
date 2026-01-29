@@ -25,6 +25,26 @@
       "bucket_name": "crow-core-organization-service-store"
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
+  "queues": {
+    "consumers": [
+      {
+        "queue": "crow-organization-context-queue",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+        "max_retries": 3,
+        "dead_letter_queue": "crow-organization-context-dlq"
+      }
+    ],
+    "producers": [
+      {
+        "queue": "crow-organization-context-queue",
+        "binding": "ORGANIZATION_CONTEXT_QUEUE"
+      }
+    ]
+  },
   "routes": [
     { "pattern": "internal.orgs.crowai.dev", "custom_domain": true }
   ],
@@ -68,7 +88,27 @@
           "binding": "R2_BUCKET",
           "bucket_name": "crow-core-organization-service-store-local"
         }
-      ]
+      ],
+      "ai": {
+        "binding": "AI"
+      },
+      "queues": {
+        "consumers": [
+          {
+            "queue": "crow-organization-context-queue",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30,
+            "max_retries": 3,
+            "dead_letter_queue": "crow-organization-context-dlq"
+          }
+        ],
+        "producers": [
+          {
+            "queue": "crow-organization-context-queue",
+            "binding": "ORGANIZATION_CONTEXT_QUEUE"
+          }
+        ]
+      }
     },
   },
 }
