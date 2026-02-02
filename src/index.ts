@@ -4,6 +4,11 @@ import { drizzle } from 'drizzle-orm/d1';
 import { logger } from 'hono/logger';
 import { poweredBy } from 'hono/powered-by';
 import * as schema from './db/schema';
+import { validateEnv } from './config/validate-env';
+import { createLogger } from './config/logger';
+import { handleErrorResponse } from './utils/error-handler';
+import { HealthCheckRoute, ReadinessCheckRoute } from './routes/health';
+import { jwtAuth, systemJwtAuth } from './middleware/auth';
 import { handleContextGenerationMessage } from './queue-handlers';
 import {
   CreateOrgBuilderRoute,
@@ -31,9 +36,63 @@ import {
   formatOrgBuilderResponse,
 } from './utils/formatters';
 
+async function checkDatabaseHealth(db: ReturnType<typeof drizzle>): Promise<boolean> {
+  try {
+    await db.run('SELECT 1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const app = new OpenAPIHono<{ Bindings: Environment }>();
+
 app.use(poweredBy());
 app.use(logger());
+
+app.use('*', async (c, next) => {
+  try {
+    validateEnv(c.env);
+  } catch (error) {
+    const logger = createLogger(c.env);
+    return handleErrorResponse(c, error, logger);
+  }
+
+  await next();
+});
+
+app.openapi(HealthCheckRoute, c => {
+  return c.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'core-organization-service',
+    version: '1.0.0',
+    environment: c.env.ENVIRONMENT || 'prod',
+  });
+});
+
+app.openapi(ReadinessCheckRoute, async c => {
+  const database = drizzle(c.env.DB, { schema });
+  const isDatabaseHealthy = await checkDatabaseHealth(database);
+
+  const isReady = isDatabaseHealthy;
+  const statusCode = isReady ? 200 : 503;
+
+  return c.json({
+    ready: isReady,
+    checks: {
+      database: isDatabaseHealthy,
+    },
+  }, statusCode);
+});
+
+app.use('/api/v1/organizations/*', async (c, next) => {
+  const systemHeader = c.req.header('X-System-Token');
+  if (systemHeader) {
+    return systemJwtAuth(c.env.BETTER_AUTH_SECRET)(c, next);
+  }
+  return jwtAuth(c.env.BETTER_AUTH_SECRET)(c, next);
+});
 
 app.openapi(HelloWorldRoute, context => {
   return context.json({ text: 'Hello Hono!' });
@@ -78,7 +137,6 @@ app.openapi(GetOrgBuilderRoute, async context => {
 app.openapi(FinalizeOrgBuilderRoute, async context => {
   const database = drizzle(context.env.DB, { schema });
   const { id } = context.req.valid('param');
-  const body = context.req.valid('json');
 
   const builder = await fetchOrgBuilderById(database, id);
 
@@ -90,7 +148,6 @@ app.openapi(FinalizeOrgBuilderRoute, async context => {
   const organizationId = await createOrganizationFromBuilder(
     database,
     builder,
-    body.slug,
     timestamp
   );
 
@@ -185,18 +242,27 @@ app.openapi(GetOrganizationContextRoute, async context => {
   });
 });
 
-app.doc('/docs', {
+app.doc('/api/docs', {
   openapi: '3.0.0',
   info: {
     version: '1.0.0',
-    title: 'Organization Service API',
+    title: 'CROW Organization API',
+    description: 'Organization management service for CROW platform',
   },
+});
+
+app.notFound(c =>
+  c.json({ error: 'Not Found', message: 'Route not found' }, 404)
+);
+
+app.onError((error, c) => {
+  const logger = createLogger(c.env);
+  return handleErrorResponse(c, error, logger);
 });
 
 export default {
   fetch: app.fetch,
 
-  // Queue consumer
   queue: async (
     batch: MessageBatch<ContextGenerationMessage>,
     env: Environment
