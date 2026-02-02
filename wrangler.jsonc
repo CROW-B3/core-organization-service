@@ -10,6 +10,7 @@
   },
   "vars": {
     "ENVIRONMENT": "prod",
+    "AUTH_SERVICE_URL": "https://internal.auth-api.crowai.dev",
   },
   "d1_databases": [
     {
@@ -52,6 +53,7 @@
     "dev": {
       "vars": {
         "ENVIRONMENT": "dev",
+        "AUTH_SERVICE_URL": "https://dev.internal.auth-api.crowai.dev",
       },
       "routes": [
         { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true }
@@ -74,6 +76,7 @@
     "local": {
       "vars": {
         "ENVIRONMENT": "local",
+        "AUTH_SERVICE_URL": "http://localhost:8001",
       },
       "d1_databases": [
         {

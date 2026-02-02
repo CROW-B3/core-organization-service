@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/d1';
 import { logger } from 'hono/logger';
 import { poweredBy } from 'hono/powered-by';
 import * as schema from './db/schema';
+import { jwtAuth, systemJwtAuth } from './middleware/auth';
 import { handleContextGenerationMessage } from './queue-handlers';
 import {
   CreateOrgBuilderRoute,
@@ -34,6 +35,14 @@ import {
 const app = new OpenAPIHono<{ Bindings: Environment }>();
 app.use(poweredBy());
 app.use(logger());
+
+app.use('/api/v1/organizations/*', async (c, next) => {
+  const systemHeader = c.req.header('X-System-Token');
+  if (systemHeader) {
+    return systemJwtAuth(c.env.BETTER_AUTH_SECRET)(c, next);
+  }
+  return jwtAuth(c.env.BETTER_AUTH_SECRET)(c, next);
+});
 
 app.openapi(HelloWorldRoute, context => {
   return context.json({ text: 'Hello Hono!' });
@@ -78,7 +87,6 @@ app.openapi(GetOrgBuilderRoute, async context => {
 app.openapi(FinalizeOrgBuilderRoute, async context => {
   const database = drizzle(context.env.DB, { schema });
   const { id } = context.req.valid('param');
-  const body = context.req.valid('json');
 
   const builder = await fetchOrgBuilderById(database, id);
 
@@ -90,7 +98,6 @@ app.openapi(FinalizeOrgBuilderRoute, async context => {
   const organizationId = await createOrganizationFromBuilder(
     database,
     builder,
-    body.slug,
     timestamp
   );
 

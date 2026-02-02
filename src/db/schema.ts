@@ -12,7 +12,6 @@ export const organization = sqliteTable('organization', {
   id: text('id').primaryKey(),
   betterAuthOrgId: text('betterAuthOrgId').notNull().unique(),
   name: text('name').notNull(),
-  slug: text('slug').notNull().unique(),
   logo: text('logo'),
   createdAt: integer('createdAt', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp' }).notNull(),
