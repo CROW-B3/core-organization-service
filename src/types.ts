@@ -4,6 +4,7 @@ export interface Environment {
   DB: D1Database;
   R2_BUCKET: R2Bucket;
   AI: Ai;
+  BETTER_AUTH_SECRET: string;
   ENVIRONMENT: 'local' | 'dev' | 'prod';
   ORGANIZATION_CONTEXT_QUEUE: Queue<ContextGenerationMessage>;
 }
@@ -43,7 +44,6 @@ export const OrganizationSchema = z
     id: z.string(),
     betterAuthOrgId: z.string(),
     name: z.string(),
-    slug: z.string(),
     logo: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
@@ -51,9 +51,7 @@ export const OrganizationSchema = z
   .openapi('Organization');
 
 export const FinalizeOrgBuilderSchema = z
-  .object({
-    slug: z.string(),
-  })
+  .object({})
   .openapi('FinalizeOrgBuilder');
 
 export const TriggerContextGenerationSchema = z

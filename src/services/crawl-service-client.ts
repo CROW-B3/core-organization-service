@@ -29,10 +29,22 @@ export const getCrawlServiceUrl = (environment: string): string => {
 
 export const fetchCrawlData = async (
   crawlServiceUrl: string,
-  crawlId: string
+  crawlId: string,
+  systemToken?: string
 ): Promise<CrawlResponse | null> => {
   try {
-    const response = await fetch(`${crawlServiceUrl}/crawls/${crawlId}`);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (systemToken) {
+      headers['X-System-Token'] = 'true';
+      headers.Authorization = `Bearer ${systemToken}`;
+    }
+
+    const response = await fetch(`${crawlServiceUrl}/crawls/${crawlId}`, {
+      headers,
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
