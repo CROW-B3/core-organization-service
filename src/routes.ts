@@ -24,7 +24,7 @@ export const HelloWorldRoute = createRoute({
 
 export const CreateOrgBuilderRoute = createRoute({
   method: 'post',
-  path: '/api/v1/org-builders',
+  path: '/api/v1/organizations/org-builders',
   request: {
     body: {
       content: { 'application/json': { schema: CreateOrgBuilderSchema } },
@@ -40,7 +40,7 @@ export const CreateOrgBuilderRoute = createRoute({
 
 export const GetOrgBuilderRoute = createRoute({
   method: 'get',
-  path: '/api/v1/org-builders/{id}',
+  path: '/api/v1/organizations/org-builders/{id}',
   request: {
     params: OrgBuilderSchema.pick({ id: true }),
   },
@@ -57,7 +57,7 @@ export const GetOrgBuilderRoute = createRoute({
 
 export const FinalizeOrgBuilderRoute = createRoute({
   method: 'post',
-  path: '/api/v1/org-builders/{id}/finalize',
+  path: '/api/v1/organizations/org-builders/{id}/finalize',
   request: {
     params: OrgBuilderSchema.pick({ id: true }),
     body: {
