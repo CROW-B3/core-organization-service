@@ -48,7 +48,6 @@ export const markBuilderAsActive = async (
 export const createOrganizationFromBuilder = async (
   database: Database,
   builder: OrgBuilder,
-  slug: string,
   timestamp: Date
 ): Promise<string> => {
   const organizationId = crypto.randomUUID();
@@ -57,7 +56,6 @@ export const createOrganizationFromBuilder = async (
     id: organizationId,
     betterAuthOrgId: builder.betterAuthOrgId,
     name: builder.name,
-    slug,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
