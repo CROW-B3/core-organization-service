@@ -1,0 +1,7 @@
+services:
+  organization-service:
+    build: .
+    ports:
+      - '8004:8080'
+    environment:
+      - ENVIRONMENT=local
