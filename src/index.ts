@@ -86,7 +86,6 @@ app.use('/api/v1/organizations/*', async (c, next) => {
   return createJWTMiddleware(c.env)(c, next);
 });
 
-// Organization ownership check for routes that need it
 app.use('/api/v1/organizations/:id/context/*', requireOrganization());
 app.use('/api/v1/organizations/:id/members', requireOrganization());
 
@@ -94,7 +93,6 @@ app.openapi(HelloWorldRoute, context => {
   return context.json({ text: 'Hello Hono!' });
 });
 
-// Create organization
 app.post('/api/v1/organizations', async context => {
   const database = drizzle(context.env.DB, { schema });
   const body = await context.req.json();
@@ -189,7 +187,6 @@ app.openapi(TriggerContextGenerationRoute, async context => {
   const { id } = context.req.valid('param');
   const { crawl_id } = context.req.valid('json');
 
-  // Validate organization exists
   const org = await fetchOrganizationById(database, id);
   if (!org) {
     return context.json(
@@ -204,21 +201,19 @@ app.openapi(TriggerContextGenerationRoute, async context => {
     );
   }
 
-  // Generate job ID for tracking
-  const jobId = crypto.randomUUID();
+  const contextGenerationJobId = crypto.randomUUID();
 
-  // Publish to queue
   await context.env.ORGANIZATION_CONTEXT_QUEUE.send({
     organizationId: id,
     crawlId: crawl_id,
     timestamp: Date.now(),
-    jobId,
+    jobId: contextGenerationJobId,
   });
 
   return context.json(
     {
       message: 'Context generation triggered',
-      job_id: jobId,
+      job_id: contextGenerationJobId,
     },
     202
   );
@@ -258,7 +253,6 @@ app.openapi(GetOrganizationMembersRoute, async context => {
   const appLogger = createLogger(context.env);
   const { id } = context.req.valid('param');
 
-  // Verify organization exists
   const organization = await fetchOrganizationById(database, id);
   if (!organization) {
     return context.json(
@@ -273,7 +267,6 @@ app.openapi(GetOrganizationMembersRoute, async context => {
     );
   }
 
-  // Fetch members from user service
   try {
     const userServiceUrl = context.env.USER_SERVICE_URL;
     const response = await fetch(
@@ -285,14 +278,11 @@ app.openapi(GetOrganizationMembersRoute, async context => {
       }
     );
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return context.json({
-          members: [],
-          total: 0,
-        });
-      }
+    if (response.status === 404) {
+      return context.json({ members: [], total: 0 });
+    }
 
+    if (!response.ok) {
       appLogger.error({
         message: 'Failed to fetch members from user service',
         status: response.status,
@@ -311,7 +301,7 @@ app.openapi(GetOrganizationMembersRoute, async context => {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { users?: Array<unknown> };
     return context.json({
       members: data.users || [],
       total: data.users?.length || 0,
