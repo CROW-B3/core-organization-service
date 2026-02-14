@@ -19,9 +19,9 @@ export interface CrawlResponse {
 export const getCrawlServiceUrl = (environment: string): string => {
   switch (environment) {
     case 'prod':
-      return 'https://infra-crawl-service.crow.workers.dev';
+      return 'https://infra-crawl-service.bitbybit-b3.workers.dev';
     case 'dev':
-      return 'https://infra-crawl-service-dev.crow.workers.dev';
+      return 'https://infra-crawl-service-dev.bitbybit-b3.workers.dev';
     default:
       return 'http://localhost:8787';
   }

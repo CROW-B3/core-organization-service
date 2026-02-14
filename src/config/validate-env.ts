@@ -6,14 +6,9 @@ import type { Environment } from '../types';
 const REQUIRED_ENV_VARS = [
   'BETTER_AUTH_SECRET',
   'AUTH_SERVICE_URL',
+  'USER_SERVICE_URL',
 ] as const;
 
-type RequiredEnvVar = (typeof REQUIRED_ENV_VARS)[number];
-
-/**
- * Validates that all required environment variables are present
- * @throws Error if any required variables are missing
- */
 export function validateEnv(env: Partial<Environment>): void {
   const missing: string[] = [];
   const empty: string[] = [];
@@ -31,7 +26,9 @@ export function validateEnv(env: Partial<Environment>): void {
   const errors: string[] = [];
 
   if (missing.length > 0) {
-    errors.push(`Missing required environment variables: ${missing.join(', ')}`);
+    errors.push(
+      `Missing required environment variables: ${missing.join(', ')}`
+    );
   }
 
   if (empty.length > 0) {
