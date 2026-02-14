@@ -3,40 +3,33 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { drizzle } from 'drizzle-orm/d1';
 import { logger } from 'hono/logger';
 import { poweredBy } from 'hono/powered-by';
-import * as schema from './db/schema';
-import { validateEnv } from './config/validate-env';
 import { createLogger } from './config/logger';
-import { handleErrorResponse } from './utils/error-handler';
-import { HealthCheckRoute, ReadinessCheckRoute } from './routes/health';
-import { jwtAuth, systemJwtAuth } from './middleware/auth';
+import { validateEnv } from './config/validate-env';
+import * as schema from './db/schema';
+import { requireOrganization } from './middleware/authorization';
+import { createJWTMiddleware } from './middleware/jwt';
 import { handleContextGenerationMessage } from './queue-handlers';
 import {
-  CreateOrgBuilderRoute,
-  FinalizeOrgBuilderRoute,
   GetOrganizationByBetterAuthIdRoute,
   GetOrganizationContextRoute,
+  GetOrganizationMembersRoute,
   GetOrganizationRoute,
-  GetOrgBuilderRoute,
   HelloWorldRoute,
   TriggerContextGenerationRoute,
 } from './routes';
-import {
-  createOrganizationFromBuilder,
-  createOrgBuilderInDatabase,
-  fetchOrgBuilderById,
-  markBuilderAsActive,
-} from './services/org-builder-service';
+import { HealthCheckRoute, ReadinessCheckRoute } from './routes/health';
 import { fetchContextByOrganizationId } from './services/organization-context-service';
 import {
+  createOrganization,
   fetchOrganizationByBetterAuthId,
   fetchOrganizationById,
 } from './services/organization-service';
-import {
-  formatOrganizationResponse,
-  formatOrgBuilderResponse,
-} from './utils/formatters';
+import { handleErrorResponse } from './utils/error-handler';
+import { formatOrganizationResponse } from './utils/formatters';
 
-async function checkDatabaseHealth(db: ReturnType<typeof drizzle>): Promise<boolean> {
+async function checkDatabaseHealth(
+  db: ReturnType<typeof drizzle>
+): Promise<boolean> {
   try {
     await db.run('SELECT 1');
     return true;
@@ -78,88 +71,68 @@ app.openapi(ReadinessCheckRoute, async c => {
   const isReady = isDatabaseHealthy;
   const statusCode = isReady ? 200 : 503;
 
-  return c.json({
-    ready: isReady,
-    checks: {
-      database: isDatabaseHealthy,
+  return c.json(
+    {
+      ready: isReady,
+      checks: {
+        database: isDatabaseHealthy,
+      },
     },
-  }, statusCode);
+    statusCode
+  );
 });
 
 app.use('/api/v1/organizations/*', async (c, next) => {
-  const systemHeader = c.req.header('X-System-Token');
-  if (systemHeader) {
-    return systemJwtAuth(c.env.BETTER_AUTH_SECRET)(c, next);
-  }
-  return jwtAuth(c.env.BETTER_AUTH_SECRET)(c, next);
+  return createJWTMiddleware(c.env)(c, next);
 });
+
+app.use('/api/v1/organizations/:id/context/*', requireOrganization());
+app.use('/api/v1/organizations/:id/members', requireOrganization());
 
 app.openapi(HelloWorldRoute, context => {
   return context.json({ text: 'Hello Hono!' });
 });
 
-app.openapi(CreateOrgBuilderRoute, async context => {
+app.post('/api/v1/organizations', async context => {
   const database = drizzle(context.env.DB, { schema });
-  const body = context.req.valid('json');
-  const builderId = crypto.randomUUID();
-  const timestamp = new Date();
+  const body = await context.req.json();
 
-  await createOrgBuilderInDatabase(
-    database,
-    builderId,
-    body.betterAuthOrgId,
-    body.name,
-    timestamp
-  );
-
-  const builder = await fetchOrgBuilderById(database, builderId);
-
-  if (!builder) {
-    return context.json({ error: 'Failed to create org builder' }, 500);
+  if (!body.betterAuthOrgId || !body.name) {
+    return context.json(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'betterAuthOrgId and name are required',
+        },
+      },
+      400
+    );
   }
 
-  return context.json(formatOrgBuilderResponse(builder), 201);
-});
+  try {
+    const organization = await createOrganization(
+      database,
+      body.betterAuthOrgId,
+      body.name
+    );
 
-app.openapi(GetOrgBuilderRoute, async context => {
-  const database = drizzle(context.env.DB, { schema });
-  const { id } = context.req.valid('param');
-
-  const builder = await fetchOrgBuilderById(database, id);
-
-  if (!builder) {
-    return context.json({ error: 'Not found' }, 404);
+    return context.json(formatOrganizationResponse(organization), 201);
+  } catch (error) {
+    const appLogger = createLogger(context.env);
+    appLogger.error(
+      { error, betterAuthOrgId: body.betterAuthOrgId },
+      'Failed to create organization'
+    );
+    return context.json(
+      {
+        error: {
+          code: 'CREATE_FAILED',
+          message: 'Failed to create organization',
+        },
+      },
+      500
+    );
   }
-
-  return context.json(formatOrgBuilderResponse(builder));
-});
-
-app.openapi(FinalizeOrgBuilderRoute, async context => {
-  const database = drizzle(context.env.DB, { schema });
-  const { id } = context.req.valid('param');
-
-  const builder = await fetchOrgBuilderById(database, id);
-
-  if (!builder) {
-    return context.json({ error: 'Builder not found' }, 404);
-  }
-
-  const timestamp = new Date();
-  const organizationId = await createOrganizationFromBuilder(
-    database,
-    builder,
-    timestamp
-  );
-
-  await markBuilderAsActive(database, id);
-
-  const organization = await fetchOrganizationById(database, organizationId);
-
-  if (!organization) {
-    return context.json({ error: 'Failed to create organization' }, 500);
-  }
-
-  return context.json(formatOrganizationResponse(organization));
 });
 
 app.openapi(GetOrganizationRoute, async context => {
@@ -169,7 +142,16 @@ app.openapi(GetOrganizationRoute, async context => {
   const organization = await fetchOrganizationById(database, id);
 
   if (!organization) {
-    return context.json({ error: 'Not found' }, 404);
+    return context.json(
+      {
+        error: {
+          code: 'ORGANIZATION_NOT_FOUND',
+          message: 'Organization not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    );
   }
 
   return context.json(formatOrganizationResponse(organization));
@@ -185,7 +167,16 @@ app.openapi(GetOrganizationByBetterAuthIdRoute, async context => {
   );
 
   if (!organization) {
-    return context.json({ error: 'Not found' }, 404);
+    return context.json(
+      {
+        error: {
+          code: 'ORGANIZATION_NOT_FOUND',
+          message: 'Organization not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    );
   }
 
   return context.json(formatOrganizationResponse(organization));
@@ -196,27 +187,33 @@ app.openapi(TriggerContextGenerationRoute, async context => {
   const { id } = context.req.valid('param');
   const { crawl_id } = context.req.valid('json');
 
-  // Validate organization exists
   const org = await fetchOrganizationById(database, id);
   if (!org) {
-    return context.json({ error: 'Organization not found' }, 404);
+    return context.json(
+      {
+        error: {
+          code: 'ORGANIZATION_NOT_FOUND',
+          message: 'Organization not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    );
   }
 
-  // Generate job ID for tracking
-  const jobId = crypto.randomUUID();
+  const contextGenerationJobId = crypto.randomUUID();
 
-  // Publish to queue
   await context.env.ORGANIZATION_CONTEXT_QUEUE.send({
     organizationId: id,
     crawlId: crawl_id,
     timestamp: Date.now(),
-    jobId,
+    jobId: contextGenerationJobId,
   });
 
   return context.json(
     {
       message: 'Context generation triggered',
-      job_id: jobId,
+      job_id: contextGenerationJobId,
     },
     202
   );
@@ -229,7 +226,16 @@ app.openapi(GetOrganizationContextRoute, async context => {
   const contextData = await fetchContextByOrganizationId(database, id);
 
   if (!contextData) {
-    return context.json({ error: 'Context not found' }, 404);
+    return context.json(
+      {
+        error: {
+          code: 'CONTEXT_NOT_FOUND',
+          message: 'Organization context not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    );
   }
 
   return context.json({
@@ -240,6 +246,84 @@ app.openapi(GetOrganizationContextRoute, async context => {
     structuredData: contextData.structuredData as Record<string, unknown>,
     generatedAt: contextData.generatedAt.toISOString(),
   });
+});
+
+app.openapi(GetOrganizationMembersRoute, async context => {
+  const database = drizzle(context.env.DB, { schema });
+  const appLogger = createLogger(context.env);
+  const { id } = context.req.valid('param');
+
+  const organization = await fetchOrganizationById(database, id);
+  if (!organization) {
+    return context.json(
+      {
+        error: {
+          code: 'ORGANIZATION_NOT_FOUND',
+          message: 'Organization not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    );
+  }
+
+  try {
+    const userServiceUrl = context.env.USER_SERVICE_URL;
+    const response = await fetch(
+      `${userServiceUrl}/api/v1/users/by-organization/${id}`,
+      {
+        headers: {
+          Authorization: context.req.header('Authorization') || '',
+        },
+      }
+    );
+
+    if (response.status === 404) {
+      return context.json({ members: [], total: 0 });
+    }
+
+    if (!response.ok) {
+      appLogger.error({
+        message: 'Failed to fetch members from user service',
+        status: response.status,
+        organizationId: id,
+      });
+
+      return context.json(
+        {
+          error: {
+            code: 'USER_SERVICE_ERROR',
+            message: 'Failed to fetch organization members',
+            timestamp: new Date().toISOString(),
+          },
+        },
+        500
+      );
+    }
+
+    const data = (await response.json()) as { users?: Array<unknown> };
+    return context.json({
+      members: data.users || [],
+      total: data.users?.length || 0,
+    });
+  } catch (error) {
+    appLogger.error({
+      message: 'Error calling user service',
+      error,
+      organizationId: id,
+    });
+
+    return context.json(
+      {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An error occurred while fetching organization members',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      500
+    );
+  }
 });
 
 app.doc('/api/docs', {

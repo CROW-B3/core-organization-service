@@ -11,7 +11,7 @@ export const jwtAuth = (secret: string) => {
     const token = authHeader.substring(7);
 
     try {
-      const payload = await verify(token, secret);
+      const payload = await verify(token, secret, 'HS256');
       c.set('jwtPayload', payload);
       c.set('isSystem', false);
       return next();
@@ -31,7 +31,7 @@ export const systemJwtAuth = (secret: string) => {
     const token = authHeader.substring(7);
 
     try {
-      const payload = await verify(token, secret);
+      const payload = await verify(token, secret, 'HS256');
 
       if (payload.type !== 'system') {
         return c.json({ error: 'System token required' }, 401);
