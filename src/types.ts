@@ -5,6 +5,8 @@ export interface Environment {
   R2_BUCKET: R2Bucket;
   AI: Ai;
   BETTER_AUTH_SECRET: string;
+  AUTH_SERVICE_URL: string;
+  USER_SERVICE_URL: string;
   ENVIRONMENT: 'local' | 'dev' | 'prod';
   ORGANIZATION_CONTEXT_QUEUE: Queue<ContextGenerationMessage>;
 }
@@ -73,7 +75,29 @@ export const OrganizationContextSchema = z
     organizationId: z.string(),
     crawlId: z.string(),
     contextType: z.string(),
-    structuredData: z.record(z.unknown()),
+    structuredData: z.record(z.string(), z.unknown()),
     generatedAt: z.string(),
   })
   .openapi('OrganizationContext');
+
+export const MemberSchema = z
+  .object({
+    id: z.string(),
+    betterAuthUserId: z.string(),
+    organizationId: z.string(),
+    email: z.string(),
+    name: z.string(),
+    profilePictureUrl: z.string().nullable(),
+    role: z.string(),
+    status: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  })
+  .openapi('Member');
+
+export const OrganizationMembersResponseSchema = z
+  .object({
+    members: z.array(MemberSchema),
+    total: z.number(),
+  })
+  .openapi('OrganizationMembersResponse');
