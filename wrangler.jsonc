@@ -10,6 +10,7 @@
   },
   "vars": {
     "ENVIRONMENT": "prod",
+    "USER_SERVICE_URL": "https://internal.users.crowai.dev",
     "AUTH_SERVICE_URL": "https://internal.auth-api.crowai.dev",
   },
   "d1_databases": [
@@ -53,7 +54,28 @@
     "dev": {
       "vars": {
         "ENVIRONMENT": "dev",
+        "USER_SERVICE_URL": "https://dev.internal.users.crowai.dev",
         "AUTH_SERVICE_URL": "https://dev.internal.auth-api.crowai.dev",
+      },
+      "ai": {
+        "binding": "AI"
+      },
+      "queues": {
+        "consumers": [
+          {
+            "queue": "crow-organization-context-queue-dev",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30,
+            "max_retries": 3,
+            "dead_letter_queue": "crow-organization-context-dlq-dev"
+          }
+        ],
+        "producers": [
+          {
+            "queue": "crow-organization-context-queue-dev",
+            "binding": "ORGANIZATION_CONTEXT_QUEUE"
+          }
+        ]
       },
       "routes": [
         { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true }
@@ -77,6 +99,7 @@
       "vars": {
         "ENVIRONMENT": "local",
         "AUTH_SERVICE_URL": "http://localhost:8001",
+        "BETTER_AUTH_SECRET": "DF1IKzRMqusC5A/56EjCFuCAKVgPNoW6pibNi5IEsFw="
       },
       "d1_databases": [
         {
@@ -91,27 +114,7 @@
           "binding": "R2_BUCKET",
           "bucket_name": "crow-core-organization-service-store-local"
         }
-      ],
-      "ai": {
-        "binding": "AI"
-      },
-      "queues": {
-        "consumers": [
-          {
-            "queue": "crow-organization-context-queue",
-            "max_batch_size": 10,
-            "max_batch_timeout": 30,
-            "max_retries": 3,
-            "dead_letter_queue": "crow-organization-context-dlq"
-          }
-        ],
-        "producers": [
-          {
-            "queue": "crow-organization-context-queue",
-            "binding": "ORGANIZATION_CONTEXT_QUEUE"
-          }
-        ]
-      }
-    },
-  },
+      ]
+    }
+  }
 }

@@ -5,6 +5,7 @@ import {
   FinalizeOrgBuilderSchema,
   HelloWorldSchema,
   OrganizationContextSchema,
+  OrganizationMembersResponseSchema,
   OrganizationSchema,
   OrgBuilderSchema,
   TriggerContextGenerationSchema,
@@ -154,6 +155,30 @@ export const GetOrganizationContextRoute = createRoute({
     },
     404: {
       description: 'Context not found',
+    },
+  },
+});
+
+export const GetOrganizationMembersRoute = createRoute({
+  method: 'get',
+  path: '/api/v1/organizations/{id}/members',
+  request: {
+    params: z.object({ id: z.string() }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: OrganizationMembersResponseSchema,
+        },
+      },
+      description: 'Organization members retrieved successfully',
+    },
+    404: {
+      description: 'Organization not found',
+    },
+    500: {
+      description: 'Internal server error',
     },
   },
 });
