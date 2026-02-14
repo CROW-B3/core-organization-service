@@ -11,7 +11,8 @@ export const generateSystemJWT = async (
       service,
       exp: Math.floor(Date.now() / 1000) + 86400, // 24hr
     },
-    secret
+    secret,
+    'HS256'
   );
 };
 

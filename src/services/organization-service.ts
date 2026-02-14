@@ -30,3 +30,40 @@ export const fetchOrganizationByBetterAuthId = async (
 
   return results[0] ?? null;
 };
+
+export const createOrganization = async (
+  database: Database,
+  betterAuthOrgId: string,
+  name: string
+): Promise<Organization> => {
+  const existing = await fetchOrganizationByBetterAuthId(
+    database,
+    betterAuthOrgId
+  );
+  if (existing) return existing;
+
+  const orgId = crypto.randomUUID();
+  const now = Date.now();
+
+  await database.insert(schema.organization).values({
+    id: orgId,
+    betterAuthOrgId,
+    name,
+    logo: null,
+    status: 'pending',
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return (await fetchOrganizationById(database, orgId))!;
+};
+
+export const activateOrganization = async (
+  database: Database,
+  organizationId: string
+): Promise<void> => {
+  await database
+    .update(schema.organization)
+    .set({ status: 'active', updatedAt: Date.now() })
+    .where(eq(schema.organization.id, organizationId));
+};
