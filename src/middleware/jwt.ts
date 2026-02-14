@@ -11,18 +11,56 @@ declare module 'hono' {
   }
 }
 
-let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+let cachedJsonWebKeySet: ReturnType<typeof createRemoteJWKSet> | null = null;
 
-const getJWKS = (authServiceUrl: string) => {
-  if (!jwks) {
-    jwks = createRemoteJWKSet(new URL(`${authServiceUrl}/api/v1/auth/jwks`));
+const getOrCreateJsonWebKeySet = (authServiceUrl: string) => {
+  if (!cachedJsonWebKeySet) {
+    cachedJsonWebKeySet = createRemoteJWKSet(
+      new URL(`${authServiceUrl}/api/v1/auth/jwks`)
+    );
   }
-  return jwks;
+  return cachedJsonWebKeySet;
+};
+
+const verifySystemToken = async (
+  context: Context<{ Bindings: Environment }>,
+  token: string,
+  secret: string,
+  next: Next
+) => {
+  try {
+    const payload = await verify(token, secret, 'HS256');
+    if (payload.type !== 'system') {
+      return context.json({ error: 'System token required' }, 401);
+    }
+    context.set('jwtPayload', payload);
+    context.set('isSystem', true);
+    return next();
+  } catch {
+    return context.json({ error: 'Invalid system token' }, 401);
+  }
+};
+
+const verifyUserToken = async (
+  context: Context<{ Bindings: Environment }>,
+  token: string,
+  authServiceUrl: string,
+  next: Next
+) => {
+  try {
+    const jsonWebKeySet = getOrCreateJsonWebKeySet(authServiceUrl);
+    const { payload } = await jwtVerify(token, jsonWebKeySet);
+    context.set('jwtPayload', payload as Record<string, unknown>);
+    context.set('userId', payload.sub as string);
+    context.set('isSystem', false);
+    return next();
+  } catch {
+    return context.json({ error: 'Invalid token' }, 401);
+  }
 };
 
 export const createJWTMiddleware = (env: Environment) => {
   return async (c: Context<{ Bindings: Environment }>, next: Next) => {
-    const systemHeader = c.req.header('X-System-Token');
     const authHeader = c.req.header('Authorization');
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -30,32 +68,12 @@ export const createJWTMiddleware = (env: Environment) => {
     }
 
     const token = authHeader.substring(7);
+    const isSystemRequest = c.req.header('X-System-Token');
 
-    // System JWT: HS256 with shared secret
-    if (systemHeader) {
-      try {
-        const payload = await verify(token, env.BETTER_AUTH_SECRET, 'HS256');
-        if (payload.type !== 'system') {
-          return c.json({ error: 'System token required' }, 401);
-        }
-        c.set('jwtPayload', payload);
-        c.set('isSystem', true);
-        return next();
-      } catch {
-        return c.json({ error: 'Invalid system token' }, 401);
-      }
+    if (isSystemRequest) {
+      return verifySystemToken(c, token, env.BETTER_AUTH_SECRET, next);
     }
 
-    // User JWT: RS256 via JWKS from Better Auth
-    try {
-      const jwksSet = getJWKS(env.AUTH_SERVICE_URL);
-      const { payload } = await jwtVerify(token, jwksSet);
-      c.set('jwtPayload', payload as Record<string, unknown>);
-      c.set('userId', payload.sub as string);
-      c.set('isSystem', false);
-      return next();
-    } catch {
-      return c.json({ error: 'Invalid token' }, 401);
-    }
+    return verifyUserToken(c, token, env.AUTH_SERVICE_URL, next);
   };
 };
