@@ -8,7 +8,6 @@ interface ChunkContext {
   text: string;
 }
 
-// Process single chunk with accumulated context
 const processChunkWithContext = async (
   ai: Ai,
   chunk: ChunkContext,
@@ -46,7 +45,6 @@ Provide a concise 2-3 sentence addition to the context.`;
   return chunkResponse.trim();
 };
 
-// Generate final summary from accumulated context
 const generateFinalSummary = async (
   ai: Ai,
   accumulatedContext: string,
@@ -81,7 +79,6 @@ Write in a professional, analytical tone.`;
   return summary.trim();
 };
 
-// Main context generation with chunked processing
 export const generateOrganizationContext = async (
   ai: Ai,
   crawlData: CrawlResponse
