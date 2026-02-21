@@ -32,9 +32,11 @@ Task: Extract key information about this company. Focus on:
 Provide a concise 2-3 sentence addition to the context.`;
 
   const result = await streamText({
-    model: workersai('@cf/meta/llama-3.1-8b-instruct'),
+    model: workersai(
+      '@cf/meta/llama-3.1-8b-instruct' as Parameters<typeof workersai>[0]
+    ),
     prompt,
-    maxTokens: 200,
+    maxOutputTokens: 200,
   });
 
   let chunkResponse = '';
@@ -66,9 +68,11 @@ Task: Create a comprehensive company context summary (4-6 paragraphs) that inclu
 Write in a professional, analytical tone.`;
 
   const result = await streamText({
-    model: workersai('@cf/meta/llama-3.1-8b-instruct'),
+    model: workersai(
+      '@cf/meta/llama-3.1-8b-instruct' as Parameters<typeof workersai>[0]
+    ),
     prompt,
-    maxTokens: 1000,
+    maxOutputTokens: 1000,
   });
 
   let summary = '';
