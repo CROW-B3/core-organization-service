@@ -85,8 +85,7 @@
         {
           "binding": "DB",
           "database_name": "crow-core-organization-service-db-dev",
-          "database_id": "eb4fecb5-48a3-4ded-af2a-e152f900ed73",
-          "migrations_dir": "drizzle/migrations"
+          "database_id": "eb4fecb5-48a3-4ded-af2a-e152f900ed73"
         }
       ],
       "r2_buckets": [

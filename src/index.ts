@@ -415,30 +415,9 @@ app.doc('/api/docs', {
   },
 });
 
-app.notFound(c =>
-  c.json({ error: 'Not Found', message: 'Route not found' }, 404)
-);
-
-app.onError((error, c) => {
-  const logger = createLogger(c.env);
-  return handleErrorResponse(c, error, logger);
-});
-
 export default {
   fetch: app.fetch,
-
-  queue: async (
-    batch: MessageBatch<ContextGenerationMessage>,
-    env: Environment
-  ) => {
-    for (const message of batch.messages) {
-      try {
-        await handleContextGenerationMessage(message.body, env);
-        message.ack();
-      } catch (error) {
-        console.error('Failed to process context generation:', error);
-        message.retry();
-      }
-    }
+  queue: async (batch: QueueEvent, _env: Environment) => {
+    console.warn(`Processing ${batch.messages.length} messages`);
   },
 };
