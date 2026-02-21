@@ -101,3 +101,22 @@ export const OrganizationMembersResponseSchema = z
     total: z.number(),
   })
   .openapi('OrganizationMembersResponse');
+
+export const OnboardOrganizationSchema = z
+  .object({
+    organizationName: z.string(),
+    ownerEmail: z.string().email(),
+    ownerName: z.string(),
+    plan: z.enum(['starter', 'pro', 'enterprise']).optional(),
+    industry: z.string().optional(),
+    size: z.enum(['small', 'medium', 'large']).optional(),
+  })
+  .openapi('OnboardOrganization');
+
+export const OnboardOrganizationResponseSchema = z
+  .object({
+    organizationId: z.string(),
+    userId: z.string(),
+    apiKey: z.string(),
+  })
+  .openapi('OnboardOrganizationResponse');
