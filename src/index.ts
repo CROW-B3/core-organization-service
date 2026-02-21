@@ -18,4 +18,10 @@ app.doc('/docs', {
     title: 'My API',
   },
 });
-export default app;
+
+export default {
+  fetch: app.fetch,
+  queue: async (batch: QueueEvent, _env: Environment) => {
+    console.warn(`Processing ${batch.messages.length} messages`);
+  },
+};
