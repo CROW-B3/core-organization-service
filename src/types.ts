@@ -8,6 +8,10 @@ export interface Environment {
   AUTH_SERVICE_URL: string;
   USER_SERVICE_URL: string;
   ENVIRONMENT: 'local' | 'dev' | 'prod';
+  SERVICE_API_KEY_AUTH?: string;
+  SERVICE_API_KEY_ORGANIZATION?: string;
+  SERVICE_API_KEY_BILLING?: string;
+  SERVICE_API_KEY_NOTIFICATION?: string;
   ORGANIZATION_CONTEXT_QUEUE: Queue<ContextGenerationMessage>;
 }
 
