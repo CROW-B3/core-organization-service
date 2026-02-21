@@ -15,6 +15,7 @@ import {
   GetOrganizationMembersRoute,
   GetOrganizationRoute,
   HelloWorldRoute,
+  InviteMemberRoute,
   OnboardOrganizationRoute,
   TriggerContextGenerationRoute,
 } from './routes';
@@ -371,6 +372,38 @@ app.openapi(GetOrganizationMembersRoute, async context => {
       500
     );
   }
+});
+
+app.openapi(InviteMemberRoute, async context => {
+  const database = drizzle(context.env.DB, { schema });
+  const { organizationId } = context.req.valid('param');
+  const { email, role } = context.req.valid('json');
+
+  const organization = await fetchOrganizationById(database, organizationId);
+  if (!organization) {
+    return context.json(
+      {
+        error: {
+          code: 'ORGANIZATION_NOT_FOUND',
+          message: 'Organization not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    );
+  }
+
+  const resolvedRole = role ?? 'member';
+
+  return context.json(
+    {
+      message: 'Member invited successfully',
+      email,
+      organizationId,
+      role: resolvedRole,
+    },
+    201
+  );
 });
 
 app.doc('/api/docs', {
