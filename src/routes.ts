@@ -205,3 +205,39 @@ export const OnboardOrganizationRoute = createRoute({
     },
   },
 });
+
+export const InviteMemberRoute = createRoute({
+  method: 'post',
+  path: '/api/v1/organizations/{organizationId}/members',
+  request: {
+    params: z.object({ organizationId: z.string() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            email: z.string().email(),
+            role: z.enum(['admin', 'member']).optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+            email: z.string(),
+            organizationId: z.string(),
+            role: z.string(),
+          }),
+        },
+      },
+      description: 'Member invited successfully',
+    },
+    404: {
+      description: 'Organization not found',
+    },
+  },
+});
