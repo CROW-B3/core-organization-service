@@ -15,14 +15,19 @@ import {
   GetOrganizationMembersRoute,
   GetOrganizationRoute,
   HelloWorldRoute,
+  OnboardOrganizationRoute,
   TriggerContextGenerationRoute,
 } from './routes';
 import { HealthCheckRoute, ReadinessCheckRoute } from './routes/health';
 import { fetchContextByOrganizationId } from './services/organization-context-service';
 import {
   createOrganization,
+  createOrganizationRecord,
+  createOwnerUser,
   fetchOrganizationByBetterAuthId,
   fetchOrganizationById,
+  generateOnboardingApiKey,
+  validateOnboardingPayload,
 } from './services/organization-service';
 import { handleErrorResponse } from './utils/error-handler';
 import { formatOrganizationResponse } from './utils/formatters';
@@ -133,6 +138,48 @@ app.post('/api/v1/organizations', async context => {
       500
     );
   }
+});
+
+app.openapi(OnboardOrganizationRoute, async context => {
+  const database = drizzle(context.env.DB, { schema });
+  const body = context.req.valid('json');
+
+  const validationError = validateOnboardingPayload(body);
+  if (validationError) {
+    return context.json(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: validationError,
+          timestamp: new Date().toISOString(),
+        },
+      },
+      400
+    );
+  }
+
+  const organization = await createOrganizationRecord(
+    database,
+    body.organizationName
+  );
+
+  const ownerUser = await createOwnerUser(
+    context.env.USER_SERVICE_URL,
+    body.ownerEmail,
+    body.ownerName,
+    organization.id
+  );
+
+  const apiKey = generateOnboardingApiKey();
+
+  return context.json(
+    {
+      organizationId: organization.id,
+      userId: ownerUser.id,
+      apiKey,
+    },
+    201
+  );
 });
 
 app.openapi(GetOrganizationRoute, async context => {
