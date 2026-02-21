@@ -4,6 +4,8 @@ import {
   CreateOrgBuilderSchema,
   FinalizeOrgBuilderSchema,
   HelloWorldSchema,
+  OnboardOrganizationResponseSchema,
+  OnboardOrganizationSchema,
   OrganizationContextSchema,
   OrganizationMembersResponseSchema,
   OrganizationSchema,
@@ -179,6 +181,27 @@ export const GetOrganizationMembersRoute = createRoute({
     },
     500: {
       description: 'Internal server error',
+    },
+  },
+});
+
+export const OnboardOrganizationRoute = createRoute({
+  method: 'post',
+  path: '/api/v1/organizations/onboard',
+  request: {
+    body: {
+      content: { 'application/json': { schema: OnboardOrganizationSchema } },
+    },
+  },
+  responses: {
+    201: {
+      content: {
+        'application/json': { schema: OnboardOrganizationResponseSchema },
+      },
+      description: 'Organization and owner created for onboarding',
+    },
+    400: {
+      description: 'Invalid request',
     },
   },
 });
