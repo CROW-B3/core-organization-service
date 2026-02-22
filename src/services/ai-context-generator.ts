@@ -83,65 +83,89 @@ Write in a professional, analytical tone.`;
   return summary.trim();
 };
 
+interface ProductRecord {
+  id: string;
+  title: string;
+  description: string;
+  price: number | null;
+  category: string | null;
+}
+
+const buildProductCatalogContext = (products: ProductRecord[]): string => {
+  if (products.length === 0) return '';
+  const lines = products.slice(0, 30).map(p => {
+    const price = p.price ? ` — $${(p.price / 100).toFixed(2)}` : '';
+    const cat = p.category ? ` [${p.category}]` : '';
+    return `• ${p.title}${price}${cat}: ${p.description?.slice(0, 120) ?? ''}`;
+  });
+  return `\n\nProduct Catalog (${products.length} products):\n${lines.join('\n')}`;
+};
+
 export const generateOrganizationContext = async (
   ai: Ai,
-  crawlData: CrawlResponse
+  crawlData: CrawlResponse | null,
+  products: ProductRecord[] = []
 ): Promise<{ summary: string; metadata: Record<string, unknown> }> => {
-  let accumulatedContext = '';
+  let accumulatedContext = buildProductCatalogContext(products);
 
-  // Process chunks in batches of 5 for manageable context
-  const chunkBatchSize = 5;
-  const totalChunks = crawlData.chunks.length;
+  if (crawlData) {
+    const chunkBatchSize = 5;
+    const totalChunks = crawlData.chunks.length;
 
-  for (let i = 0; i < totalChunks; i += chunkBatchSize) {
-    const batch = crawlData.chunks.slice(i, i + chunkBatchSize);
+    for (let i = 0; i < totalChunks; i += chunkBatchSize) {
+      const batch = crawlData.chunks.slice(i, i + chunkBatchSize);
 
-    for (const chunk of batch) {
-      const chunkContext = await processChunkWithContext(
-        ai,
-        {
-          url: chunk.url,
-          title: chunk.title,
-          text: chunk.text,
-        },
-        accumulatedContext
-      );
+      for (const chunk of batch) {
+        const chunkContext = await processChunkWithContext(
+          ai,
+          { url: chunk.url, title: chunk.title, text: chunk.text },
+          accumulatedContext
+        );
+        accumulatedContext += `\n${chunkContext}`;
+      }
 
-      accumulatedContext += `\n${chunkContext}`;
-    }
-
-    // Brief pause between batches to avoid rate limits
-    if (i + chunkBatchSize < totalChunks) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (i + chunkBatchSize < totalChunks) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
   }
 
-  // Generate final summary from accumulated context
+  const fallbackMetadata = {
+    total_pages: 0,
+    total_chunks: 0,
+    crawl_duration_seconds: 0,
+    start_url: '',
+    timestamp: new Date().toISOString(),
+  };
   const finalSummary = await generateFinalSummary(
     ai,
     accumulatedContext,
-    crawlData.metadata
+    crawlData?.metadata ?? fallbackMetadata
   );
 
-  // Extract structured metadata
-  const uniqueUrls = new Set(crawlData.chunks.map(c => c.url));
-  const totalWords = crawlData.chunks.reduce(
-    (sum, chunk) => sum + chunk.word_count,
-    0
-  );
-  const topics = [
-    ...new Set(crawlData.chunks.map(c => c.title).filter(t => t)),
-  ].slice(0, 10);
+  const uniqueUrls = crawlData
+    ? new Set(crawlData.chunks.map(c => c.url))
+    : new Set<string>();
+  const totalWords = crawlData
+    ? crawlData.chunks.reduce((sum, chunk) => sum + chunk.word_count, 0)
+    : 0;
+  const topics = crawlData
+    ? [...new Set(crawlData.chunks.map(c => c.title).filter(t => t))].slice(
+        0,
+        10
+      )
+    : [];
 
   return {
     summary: finalSummary,
     metadata: {
-      totalPages: crawlData.metadata.total_pages,
-      totalChunks: crawlData.metadata.total_chunks,
+      totalPages: crawlData?.metadata.total_pages ?? 0,
+      totalChunks: crawlData?.metadata.total_chunks ?? 0,
       totalWords,
       uniquePages: uniqueUrls.size,
       contentTopics: topics,
-      crawlDuration: crawlData.metadata.crawl_duration_seconds,
+      crawlDuration: crawlData?.metadata.crawl_duration_seconds ?? 0,
+      productsIndexed: products.length,
       crawledAt: new Date().toISOString(),
     },
   };
