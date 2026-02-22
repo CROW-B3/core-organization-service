@@ -7,6 +7,7 @@ export interface Environment {
   BETTER_AUTH_SECRET: string;
   AUTH_SERVICE_URL: string;
   USER_SERVICE_URL: string;
+  PRODUCT_SERVICE_URL: string;
   ENVIRONMENT: 'local' | 'dev' | 'prod';
   SERVICE_API_KEY_AUTH?: string;
   SERVICE_API_KEY_ORGANIZATION?: string;
@@ -17,7 +18,7 @@ export interface Environment {
 
 export interface ContextGenerationMessage {
   organizationId: string;
-  crawlId: string;
+  crawlId?: string;
   timestamp: number;
   jobId: string;
 }
@@ -62,7 +63,7 @@ export const FinalizeOrgBuilderSchema = z
 
 export const TriggerContextGenerationSchema = z
   .object({
-    crawl_id: z.string(),
+    crawl_id: z.string().optional(),
   })
   .openapi('TriggerContextGeneration');
 
