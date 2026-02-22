@@ -50,7 +50,7 @@ export const createOrganization = async (
     betterAuthOrgId,
     name,
     logo: null,
-    status: 'pending',
+    status: 'active',
     createdAt: now,
     updatedAt: now,
   });
