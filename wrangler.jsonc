@@ -56,6 +56,7 @@
         "ENVIRONMENT": "dev",
         "USER_SERVICE_URL": "https://dev.internal.users.crowai.dev",
         "AUTH_SERVICE_URL": "https://dev.internal.auth-api.crowai.dev",
+        "PRODUCT_SERVICE_URL": "https://dev.internal.products.crowai.dev",
         "BETTER_AUTH_SECRET": "DF1IKzRMqusC5A/56EjCFuCAKVgPNoW6pibNi5IEsFw=",
       },
       "ai": {
