@@ -70,16 +70,47 @@ const logErrorToConsole = (
   }
 };
 
+const isZodValidationError = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as { name?: string }).name === 'ZodError';
+
+const isMalformedJsonError = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) return false;
+  const { name, message } = error as { name?: string; message?: string };
+  if (name === 'SyntaxError') return true;
+  if (typeof message !== 'string') return false;
+  return (
+    message.includes('Malformed JSON') ||
+    message.includes('Unexpected end of JSON') ||
+    message.includes('Unexpected token')
+  );
+};
+
 export const handleErrorResponse = (
   c: Context,
   error: unknown,
   logger: pino.Logger
 ) => {
+  logErrorToConsole(logger, error);
+
+  if (isZodValidationError(error)) {
+    return c.json(
+      createErrorResponse('VALIDATION_ERROR', 'Invalid request parameters'),
+      400 as Parameters<typeof c.json>[1]
+    );
+  }
+
+  if (isMalformedJsonError(error)) {
+    return c.json(
+      createErrorResponse('BAD_REQUEST', 'Invalid request body'),
+      400 as Parameters<typeof c.json>[1]
+    );
+  }
+
   const statusCode = getStatusCodeFromError(error);
   const code = getErrorCodeFromError(error);
   const message = getErrorMessageFromError(error);
-
-  logErrorToConsole(logger, error);
 
   return c.json(
     createErrorResponse(code, message),
