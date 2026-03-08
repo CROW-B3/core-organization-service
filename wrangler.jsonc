@@ -57,7 +57,8 @@
         "USER_SERVICE_URL": "https://dev.internal.users.crowai.dev",
         "AUTH_SERVICE_URL": "https://dev.internal.auth-api.crowai.dev",
         "PRODUCT_SERVICE_URL": "https://dev.internal.products.crowai.dev",
-        "BETTER_AUTH_SECRET": "DF1IKzRMqusC5A/56EjCFuCAKVgPNoW6pibNi5IEsFw=",
+        // BETTER_AUTH_SECRET: set via `wrangler secret put BETTER_AUTH_SECRET --env dev`
+        // SERVICE_API_KEY_GATEWAY: set via `wrangler secret put SERVICE_API_KEY_GATEWAY --env dev`
       },
       "ai": {
         "binding": "AI"
@@ -101,7 +102,7 @@
       "vars": {
         "ENVIRONMENT": "local",
         "AUTH_SERVICE_URL": "http://localhost:8001",
-        "BETTER_AUTH_SECRET": "DF1IKzRMqusC5A/56EjCFuCAKVgPNoW6pibNi5IEsFw="
+        // BETTER_AUTH_SECRET: set via `wrangler secret put BETTER_AUTH_SECRET --env local`
       },
       "d1_databases": [
         {

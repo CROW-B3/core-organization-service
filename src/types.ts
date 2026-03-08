@@ -13,7 +13,9 @@ export interface Environment {
   SERVICE_API_KEY_ORGANIZATION?: string;
   SERVICE_API_KEY_BILLING?: string;
   SERVICE_API_KEY_NOTIFICATION?: string;
+  SERVICE_API_KEY_GATEWAY?: string;
   ORGANIZATION_CONTEXT_QUEUE: Queue<ContextGenerationMessage>;
+  INTERNAL_GATEWAY_KEY?: string;
 }
 
 export interface ContextGenerationMessage {
