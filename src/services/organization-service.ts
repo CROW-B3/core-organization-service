@@ -111,11 +111,17 @@ export const createOwnerUser = async (
   userServiceUrl: string,
   email: string,
   name: string,
-  organizationId: string
+  organizationId: string,
+  internalGatewayKey: string,
+  serviceApiKey: string
 ): Promise<OwnerUser> => {
   const response = await fetch(`${userServiceUrl}/api/v1/users/create`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Key': internalGatewayKey,
+      'X-Service-API-Key': serviceApiKey,
+    },
     body: JSON.stringify({
       email,
       name,

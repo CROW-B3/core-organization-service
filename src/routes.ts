@@ -123,6 +123,7 @@ export const TriggerContextGenerationRoute = createRoute({
           schema: TriggerContextGenerationSchema,
         },
       },
+      required: false,
     },
   },
   responses: {
