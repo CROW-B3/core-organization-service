@@ -35,6 +35,11 @@ const SERVICE_REGISTRY: Record<string, ServiceCredentials> = {
     apiKey: '', // Set via env
     allowedScopes: ['users:read'],
   },
+  'service:gateway': {
+    serviceId: 'service:gateway',
+    apiKey: '', // Set via env
+    allowedScopes: ['orgs:read'],
+  },
 };
 
 const loadServiceRegistry = (
@@ -48,6 +53,7 @@ const loadServiceRegistry = (
   registry['service:billing'].apiKey = env.SERVICE_API_KEY_BILLING || '';
   registry['service:notification'].apiKey =
     env.SERVICE_API_KEY_NOTIFICATION || '';
+  registry['service:gateway'].apiKey = env.SERVICE_API_KEY_GATEWAY || '';
 
   return registry;
 };
