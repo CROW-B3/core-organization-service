@@ -130,6 +130,24 @@ export const generateOrganizationContext = async (
     }
   }
 
+  // Guard: if there is no content to summarize, return early rather than
+  // letting LLaMA produce a fill-in-the-blank template response.
+  if (!accumulatedContext.trim()) {
+    return {
+      summary: '',
+      metadata: {
+        totalPages: 0,
+        totalChunks: 0,
+        totalWords: 0,
+        uniquePages: 0,
+        contentTopics: [],
+        crawlDuration: 0,
+        productsIndexed: products.length,
+        crawledAt: new Date().toISOString(),
+      },
+    };
+  }
+
   const fallbackMetadata = {
     total_pages: 0,
     total_chunks: 0,
