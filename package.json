@@ -23,7 +23,7 @@
   "dependencies": {
     "@antfu/eslint-config": "^6.7.1",
     "@d3avarja/try-catch": "^0.0.1",
-    "@hono/swagger-ui": "^0.5.2",
+    "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.1.5",
     "ai": "^6.0.61",
     "drizzle-orm": "^0.45.1",
