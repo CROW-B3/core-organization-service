@@ -130,8 +130,6 @@ export const generateOrganizationContext = async (
     }
   }
 
-  // Guard: if there is no content to summarize, return early rather than
-  // letting LLaMA produce a fill-in-the-blank template response.
   if (!accumulatedContext.trim()) {
     return {
       summary: '',
