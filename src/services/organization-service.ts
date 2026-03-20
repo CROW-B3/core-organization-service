@@ -58,6 +58,28 @@ export const createOrganization = async (
   return (await fetchOrganizationById(database, orgId))!;
 };
 
+export const updateOrganization = async (
+  database: Database,
+  organizationId: string,
+  updates: { name?: string; logo?: string | null }
+): Promise<Organization | null> => {
+  const existing = await fetchOrganizationById(database, organizationId);
+  if (!existing) return null;
+
+  const fields: Partial<typeof schema.organization.$inferInsert> = {
+    updatedAt: Date.now(),
+  };
+  if (updates.name !== undefined) fields.name = updates.name;
+  if (updates.logo !== undefined) fields.logo = updates.logo;
+
+  await database
+    .update(schema.organization)
+    .set(fields)
+    .where(eq(schema.organization.id, organizationId));
+
+  return fetchOrganizationById(database, organizationId);
+};
+
 export const activateOrganization = async (
   database: Database,
   organizationId: string

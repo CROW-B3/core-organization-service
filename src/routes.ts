@@ -11,6 +11,7 @@ import {
   OrganizationSchema,
   OrgBuilderSchema,
   TriggerContextGenerationSchema,
+  UpdateOrganizationSchema,
 } from './types';
 
 export const HelloWorldRoute = createRoute({
@@ -105,6 +106,32 @@ export const GetOrganizationByBetterAuthIdRoute = createRoute({
     200: {
       content: { 'application/json': { schema: OrganizationSchema } },
       description: 'Organization found',
+    },
+    404: {
+      description: 'Organization not found',
+    },
+  },
+});
+
+export const UpdateOrganizationRoute = createRoute({
+  method: 'patch',
+  path: '/api/v1/organizations/{id}',
+  request: {
+    params: OrganizationSchema.pick({ id: true }),
+    body: {
+      content: { 'application/json': { schema: UpdateOrganizationSchema } },
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: OrganizationSchema } },
+      description: 'Organization updated',
+    },
+    400: {
+      description: 'Invalid request body',
+    },
+    403: {
+      description: 'Access denied',
     },
     404: {
       description: 'Organization not found',
