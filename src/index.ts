@@ -18,6 +18,7 @@ import {
   InviteMemberRoute,
   OnboardOrganizationRoute,
   TriggerContextGenerationRoute,
+  UpdateOrganizationRoute,
 } from './routes';
 import { HealthCheckRoute, ReadinessCheckRoute } from './routes/health';
 import { fetchContextByOrganizationId } from './services/organization-context-service';
@@ -28,6 +29,7 @@ import {
   fetchOrganizationByBetterAuthId,
   fetchOrganizationById,
   generateOnboardingApiKey,
+  updateOrganization,
   validateOnboardingPayload,
 } from './services/organization-service';
 import { handleErrorResponse } from './utils/error-handler';
@@ -280,6 +282,50 @@ app.openapi(GetOrganizationRoute, async context => {
   }
 
   return context.json(formatOrganizationResponse(organization));
+});
+
+app.openapi(UpdateOrganizationRoute, async context => {
+  const database = drizzle(context.env.DB, { schema });
+  const { id } = context.req.valid('param');
+  const body = context.req.valid('json');
+
+  const callerOrgId = context.req.header('X-Organization-Id');
+  if (!callerOrgId || callerOrgId !== id) {
+    return context.json(
+      { error: 'Forbidden', message: 'Access denied to this organization' },
+      403
+    ) as never;
+  }
+
+  if (!body.name && body.logo === undefined) {
+    return context.json(
+      {
+        error: 'Bad Request',
+        message: 'At least one field (name or logo) must be provided',
+      },
+      400
+    ) as never;
+  }
+
+  const updated = await updateOrganization(database, id, {
+    name: body.name,
+    logo: body.logo,
+  });
+
+  if (!updated) {
+    return context.json(
+      {
+        error: {
+          code: 'ORGANIZATION_NOT_FOUND',
+          message: 'Organization not found',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      404
+    ) as never;
+  }
+
+  return context.json(formatOrganizationResponse(updated));
 });
 
 app.openapi(GetOrganizationByBetterAuthIdRoute, async context => {
