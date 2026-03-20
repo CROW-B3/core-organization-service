@@ -24,7 +24,6 @@ export const requireOrganization = () => {
     if (c.get('isSystem')) return next();
 
     const jwtPayload = c.get('jwtPayload');
-    // The URL :id param is the org service's own UUID
     const urlOrgId =
       c.req.param('id') ||
       c.req.param('organizationId') ||
@@ -37,8 +36,6 @@ export const requireOrganization = () => {
       );
     }
 
-    // The better-auth org ID may come from the JWT payload or the X-Organization-Id header
-    // set by the gateway (session.activeOrganizationId). Both are better-auth IDs, NOT UUIDs.
     const betterAuthOrgIdFromJwt = jwtPayload?.organizationId as
       | string
       | undefined;
@@ -53,13 +50,10 @@ export const requireOrganization = () => {
       );
     }
 
-    // If the betterAuthOrgId already matches the urlOrgId directly (e.g. legacy records
-    // where betterAuthOrgId === id), allow it without a DB lookup.
     if (betterAuthOrgId === urlOrgId) {
       return next();
     }
 
-    // Look up the org by its better-auth ID to get the UUID, then compare with the URL param.
     try {
       const database = drizzle(c.env.DB, { schema });
       const org = await fetchOrganizationByBetterAuthId(
