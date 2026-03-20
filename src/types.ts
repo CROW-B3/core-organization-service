@@ -109,6 +109,13 @@ export const OrganizationMembersResponseSchema = z
   })
   .openapi('OrganizationMembersResponse');
 
+export const UpdateOrganizationSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    logo: z.string().nullable().optional(),
+  })
+  .openapi('UpdateOrganization');
+
 export const OnboardOrganizationSchema = z
   .object({
     organizationName: z.string(),
