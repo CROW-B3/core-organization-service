@@ -81,7 +81,8 @@
         ]
       },
       "routes": [
-        { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true }
+        { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true },
+        { "pattern": "internal.orgs.crowai.dev", "custom_domain": true }
       ],
       "d1_databases": [
         {
