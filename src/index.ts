@@ -119,6 +119,16 @@ app.use(
 app.use(
   '/api/v1/organizations/by-auth-id/:betterAuthOrgId',
   async (c, next) => {
+    // Allow requests that already passed the global X-Internal-Key check
+    // (the global /api/v1/* middleware ensures X-Internal-Key is valid before reaching here)
+    const internalKey = c.req.header('X-Internal-Key');
+    if (
+      internalKey &&
+      c.env.INTERNAL_GATEWAY_KEY &&
+      internalKey === c.env.INTERNAL_GATEWAY_KEY
+    ) {
+      return next();
+    }
     if (!c.get('callingService')) {
       return c.json(
         { error: 'Unauthorized', message: 'Service authentication required' },
