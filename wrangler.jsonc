@@ -12,6 +12,7 @@
     "ENVIRONMENT": "prod",
     "USER_SERVICE_URL": "https://internal.users.crowai.dev",
     "AUTH_SERVICE_URL": "https://internal.auth-api.crowai.dev",
+    "AI_GATEWAY_ID": "crow-ai-gateway",
   },
   "d1_databases": [
     {
@@ -57,6 +58,7 @@
         "USER_SERVICE_URL": "https://dev.internal.users.crowai.dev",
         "AUTH_SERVICE_URL": "https://dev.internal.auth-api.crowai.dev",
         "PRODUCT_SERVICE_URL": "https://dev.internal.products.crowai.dev",
+        "AI_GATEWAY_ID": "crow-ai-gateway",
         // BETTER_AUTH_SECRET: set via `wrangler secret put BETTER_AUTH_SECRET --env dev`
         // SERVICE_API_KEY_GATEWAY: set via `wrangler secret put SERVICE_API_KEY_GATEWAY --env dev`
       },
@@ -81,7 +83,8 @@
         ]
       },
       "routes": [
-        { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true }
+        { "pattern": "dev.internal.orgs.crowai.dev", "custom_domain": true },
+        { "pattern": "internal.orgs.crowai.dev", "custom_domain": true }
       ],
       "d1_databases": [
         {
@@ -101,7 +104,12 @@
       "vars": {
         "ENVIRONMENT": "local",
         "AUTH_SERVICE_URL": "http://localhost:8001",
+        "AI_GATEWAY_ID": "crow-ai-gateway",
         // BETTER_AUTH_SECRET: set via `wrangler secret put BETTER_AUTH_SECRET --env local`
+      },
+      "ai": {
+        "binding": "AI",
+        "remote": true
       },
       "d1_databases": [
         {
