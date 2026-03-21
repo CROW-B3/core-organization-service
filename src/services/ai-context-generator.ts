@@ -13,7 +13,10 @@ const processChunkWithContext = async (
   chunk: ChunkContext,
   accumulatedContext: string
 ): Promise<string> => {
-  const workersai = createWorkersAI({ binding: ai });
+  const workersai = createWorkersAI({
+    binding: ai,
+    gateway: { id: 'crow-ai-gateway', skipCache: false },
+  });
 
   const prompt = `You are analyzing website content to build a company context.
 
@@ -52,7 +55,10 @@ const generateFinalSummary = async (
   accumulatedContext: string,
   metadata: CrawlResponse['metadata']
 ): Promise<string> => {
-  const workersai = createWorkersAI({ binding: ai });
+  const workersai = createWorkersAI({
+    binding: ai,
+    gateway: { id: 'crow-ai-gateway', skipCache: false },
+  });
 
   const prompt = `Based on analyzing ${metadata.total_pages} pages of a company website, here's the accumulated context:
 
