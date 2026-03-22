@@ -61,7 +61,9 @@ export const handleContextGenerationMessage = async (
     if (existing) return;
   }
 
-  const products = await fetchOrganizationProducts(env, message.organizationId);
+  // Use betterAuthOrgId to fetch products — products are stored under the betterAuth org ID
+  const productOrgId = message.betterAuthOrgId || message.organizationId;
+  const products = await fetchOrganizationProducts(env, productOrgId);
 
   const crawlServiceUrl = getCrawlServiceUrl(env.ENVIRONMENT);
   const crawlData = message.crawlId

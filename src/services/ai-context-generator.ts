@@ -136,7 +136,7 @@ export const generateOrganizationContext = async (
     }
   }
 
-  if (!accumulatedContext.trim()) {
+  if (!accumulatedContext.trim() && products.length === 0) {
     return {
       summary: '',
       metadata: {
@@ -146,7 +146,7 @@ export const generateOrganizationContext = async (
         uniquePages: 0,
         contentTopics: [],
         crawlDuration: 0,
-        productsIndexed: products.length,
+        productsIndexed: 0,
         crawledAt: new Date().toISOString(),
       },
     };
