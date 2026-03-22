@@ -452,15 +452,30 @@ app.openapi(GetOrganizationContextRoute, async context => {
   const database = drizzle(context.env.DB, { schema });
   const { id } = context.req.valid('param');
 
-  const callerOrgId = context.req.header('X-Organization-Id');
-  if (!callerOrgId || callerOrgId !== id) {
-    return context.json(
-      { error: 'Forbidden', message: 'Access denied to this organization' },
-      403
-    ) as never;
+  // Allow access if X-Internal-Key matches or X-Organization-Id matches
+  const internalKey = context.req.header('X-Internal-Key');
+  const isInternal =
+    internalKey &&
+    context.env.INTERNAL_GATEWAY_KEY &&
+    internalKey === context.env.INTERNAL_GATEWAY_KEY;
+  if (!isInternal) {
+    const callerOrgId = context.req.header('X-Organization-Id');
+    if (!callerOrgId || callerOrgId !== id) {
+      return context.json(
+        { error: 'Forbidden', message: 'Access denied to this organization' },
+        403
+      ) as never;
+    }
   }
 
-  const contextData = await fetchContextByOrganizationId(database, id);
+  // Try internal ID first, then betterAuth ID
+  let contextData = await fetchContextByOrganizationId(database, id);
+  if (!contextData) {
+    const org = await fetchOrganizationByBetterAuthId(database, id);
+    if (org) {
+      contextData = await fetchContextByOrganizationId(database, org.id);
+    }
+  }
 
   if (!contextData) {
     return context.json(
