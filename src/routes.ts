@@ -79,6 +79,24 @@ export const FinalizeOrgBuilderRoute = createRoute({
   },
 });
 
+export const ListOrganizationsRoute = createRoute({
+  method: 'get',
+  path: '/api/v1/organizations',
+  request: {},
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            organizations: z.array(OrganizationSchema),
+          }),
+        },
+      },
+      description: 'List of all organizations',
+    },
+  },
+});
+
 export const GetOrganizationRoute = createRoute({
   method: 'get',
   path: '/api/v1/organizations/{id}',
