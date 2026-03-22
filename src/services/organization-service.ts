@@ -5,6 +5,12 @@ import * as schema from '../db/schema';
 export type Organization = typeof schema.organization.$inferSelect;
 export type Database = DrizzleD1Database<typeof schema>;
 
+export const fetchAllOrganizations = async (
+  database: Database
+): Promise<Organization[]> => {
+  return database.select().from(schema.organization);
+};
+
 export const fetchOrganizationById = async (
   database: Database,
   organizationId: string

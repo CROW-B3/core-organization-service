@@ -16,6 +16,7 @@ import {
   GetOrganizationRoute,
   HelloWorldRoute,
   InviteMemberRoute,
+  ListOrganizationsRoute,
   OnboardOrganizationRoute,
   TriggerContextGenerationRoute,
   UpdateOrganizationRoute,
@@ -26,6 +27,7 @@ import {
   createOrganization,
   createOrganizationRecord,
   createOwnerUser,
+  fetchAllOrganizations,
   fetchOrganizationByBetterAuthId,
   fetchOrganizationById,
   generateOnboardingApiKey,
@@ -185,6 +187,14 @@ app.use('/api/v1/organizations', async (c, next) => {
     );
   }
   return next();
+});
+
+app.openapi(ListOrganizationsRoute, async context => {
+  const database = drizzle(context.env.DB, { schema });
+  const organizations = await fetchAllOrganizations(database);
+  return context.json({
+    organizations: organizations.map(formatOrganizationResponse),
+  });
 });
 
 app.post('/api/v1/organizations', async context => {
