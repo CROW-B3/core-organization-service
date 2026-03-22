@@ -143,10 +143,30 @@ app.use('/api/v1/organizations/:id', async (c, next) =>
   createJWTMiddleware(c.env)(c, next)
 );
 app.use('/api/v1/organizations/:id', requireOrganization());
-app.use('/api/v1/organizations/:id/context/*', async (c, next) =>
-  createJWTMiddleware(c.env)(c, next)
-);
-app.use('/api/v1/organizations/:id/context/*', requireOrganization());
+app.use('/api/v1/organizations/:id/context/*', async (c, next) => {
+  // Allow internal service-to-service calls (e.g. product service triggering context generation)
+  const internalKey = c.req.header('X-Internal-Key');
+  if (
+    internalKey &&
+    c.env.INTERNAL_GATEWAY_KEY &&
+    internalKey === c.env.INTERNAL_GATEWAY_KEY
+  ) {
+    return next();
+  }
+  return createJWTMiddleware(c.env)(c, next);
+});
+app.use('/api/v1/organizations/:id/context/*', async (c, next) => {
+  // Allow internal service-to-service calls
+  const internalKey = c.req.header('X-Internal-Key');
+  if (
+    internalKey &&
+    c.env.INTERNAL_GATEWAY_KEY &&
+    internalKey === c.env.INTERNAL_GATEWAY_KEY
+  ) {
+    return next();
+  }
+  return requireOrganization()(c, next);
+});
 app.use('/api/v1/organizations/:id/members', async (c, next) =>
   createJWTMiddleware(c.env)(c, next)
 );
@@ -366,18 +386,35 @@ app.openapi(GetOrganizationByBetterAuthIdRoute, async context => {
 app.openapi(TriggerContextGenerationRoute, async context => {
   const database = drizzle(context.env.DB, { schema });
   const { id } = context.req.valid('param');
-  const body = context.req.valid('json') as { crawl_id?: string } | undefined;
-  const crawl_id = body?.crawl_id;
 
-  const callerOrgId = context.req.header('X-Organization-Id');
-  if (!callerOrgId || callerOrgId !== id) {
-    return context.json(
-      { error: 'Forbidden', message: 'Access denied to this organization' },
-      403
-    ) as never;
+  // Read crawl_id from query params (product service sends it there) or body
+  const body = context.req.valid('json') as { crawl_id?: string } | undefined;
+  const crawl_id = context.req.query('crawl_id') || body?.crawl_id;
+
+  // Check if this is an internal service call (e.g. product service)
+  const internalKey = context.req.header('X-Internal-Key');
+  const isInternalCall =
+    internalKey &&
+    context.env.INTERNAL_GATEWAY_KEY &&
+    internalKey === context.env.INTERNAL_GATEWAY_KEY;
+
+  if (!isInternalCall) {
+    const callerOrgId = context.req.header('X-Organization-Id');
+    if (!callerOrgId || callerOrgId !== id) {
+      return context.json(
+        { error: 'Forbidden', message: 'Access denied to this organization' },
+        403
+      ) as never;
+    }
   }
 
-  const org = await fetchOrganizationById(database, id);
+  // The id parameter may be a betterAuth org ID (from product service) or internal ID.
+  // Try both lookups to resolve the organization.
+  let org = await fetchOrganizationById(database, id);
+  if (!org) {
+    org = await fetchOrganizationByBetterAuthId(database, id);
+  }
+
   if (!org) {
     return context.json(
       {
@@ -393,8 +430,10 @@ app.openapi(TriggerContextGenerationRoute, async context => {
 
   const contextGenerationJobId = crypto.randomUUID();
 
+  // Send both IDs: internal ID for storing context, betterAuth ID for fetching products
   await context.env.ORGANIZATION_CONTEXT_QUEUE.send({
-    organizationId: id,
+    organizationId: org.id,
+    betterAuthOrgId: org.betterAuthOrgId,
     crawlId: crawl_id,
     timestamp: Date.now(),
     jobId: contextGenerationJobId,

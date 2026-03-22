@@ -20,6 +20,7 @@ export interface Environment {
 
 export interface ContextGenerationMessage {
   organizationId: string;
+  betterAuthOrgId: string;
   crawlId?: string;
   timestamp: number;
   jobId: string;
