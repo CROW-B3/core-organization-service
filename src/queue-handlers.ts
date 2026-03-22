@@ -95,4 +95,26 @@ export const handleContextGenerationMessage = async (
     structuredData,
     new Date(message.timestamp)
   );
+
+  // Vectorize org context for QnA
+  if (summary && env.QNA_SERVICE_URL) {
+    try {
+      await fetch(`${env.QNA_SERVICE_URL}/api/v1/qna/index`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(env.INTERNAL_GATEWAY_KEY
+            ? { 'X-Internal-Key': env.INTERNAL_GATEWAY_KEY }
+            : {}),
+        },
+        body: JSON.stringify({
+          organizationId: message.organizationId,
+          content: summary,
+          type: 'organization_context',
+        }),
+      });
+    } catch (err) {
+      console.error('[context] Failed to vectorize org context for QnA:', err);
+    }
+  }
 };

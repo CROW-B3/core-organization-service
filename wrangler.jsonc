@@ -13,6 +13,7 @@
     "USER_SERVICE_URL": "https://internal.users.crowai.dev",
     "AUTH_SERVICE_URL": "https://internal.auth-api.crowai.dev",
     "AI_GATEWAY_ID": "crow-ai-gateway",
+    "QNA_SERVICE_URL": "https://internal.qna.crowai.dev",
   },
   "d1_databases": [
     {
@@ -59,6 +60,7 @@
         "AUTH_SERVICE_URL": "https://dev.internal.auth-api.crowai.dev",
         "PRODUCT_SERVICE_URL": "https://dev.internal.products.crowai.dev",
         "AI_GATEWAY_ID": "crow-ai-gateway",
+        "QNA_SERVICE_URL": "https://dev.internal.qna.crowai.dev",
         // BETTER_AUTH_SECRET: set via `wrangler secret put BETTER_AUTH_SECRET --env dev`
         // SERVICE_API_KEY_GATEWAY: set via `wrangler secret put SERVICE_API_KEY_GATEWAY --env dev`
       },
