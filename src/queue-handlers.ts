@@ -37,10 +37,17 @@ const fetchOrganizationProducts = async (
   organizationId: string
 ): Promise<ProductRecord[]> => {
   try {
+    const headers: Record<string, string> = {};
+    if (env.INTERNAL_GATEWAY_KEY) {
+      headers['X-Internal-Key'] = env.INTERNAL_GATEWAY_KEY;
+    }
     const token = await buildSystemToken(env.BETTER_AUTH_SECRET);
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     const response = await fetch(
       `${env.PRODUCT_SERVICE_URL}/api/v1/products/organization/${organizationId}?page=1&pageSize=50`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers }
     );
     if (!response.ok) return [];
     const data = (await response.json()) as { products?: ProductRecord[] };
