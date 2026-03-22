@@ -16,6 +16,7 @@ export interface Environment {
   SERVICE_API_KEY_GATEWAY?: string;
   ORGANIZATION_CONTEXT_QUEUE: Queue<ContextGenerationMessage>;
   INTERNAL_GATEWAY_KEY?: string;
+  QNA_SERVICE_URL?: string;
 }
 
 export interface ContextGenerationMessage {
