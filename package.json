@@ -36,7 +36,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@commitlint/config-conventional": "^20.2.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@deox/drizzle-d1-utils": "^0.0.1",
     "better-sqlite3": "^12.6.2",
     "drizzle-kit": "^0.31.8",
