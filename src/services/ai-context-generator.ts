@@ -1,4 +1,5 @@
 import type { CrawlResponse } from './crawl-service-client';
+import { generateContextWithAgents } from '../agents/runner';
 import { streamText } from 'ai';
 import { createWorkersAI } from 'workers-ai-provider';
 
@@ -7,6 +8,8 @@ interface ChunkContext {
   title: string;
   text: string;
 }
+
+// ── Legacy sequential implementation (kept as fallback) ──────────────
 
 const processChunkWithContext = async (
   ai: Ai,
@@ -107,7 +110,7 @@ const buildProductCatalogContext = (products: ProductRecord[]): string => {
   return `\n\nProduct Catalog (${products.length} products):\n${lines.join('\n')}`;
 };
 
-export const generateOrganizationContext = async (
+const generateContextLegacy = async (
   ai: Ai,
   crawlData: CrawlResponse | null,
   products: ProductRecord[] = []
@@ -191,4 +194,96 @@ export const generateOrganizationContext = async (
       crawledAt: new Date().toISOString(),
     },
   };
+};
+
+// ── Primary multi-agent implementation ───────────────────────────────
+
+const buildContextMetadata = (
+  crawlData: CrawlResponse | null,
+  products: ProductRecord[],
+  agentCount: number
+): Record<string, unknown> => {
+  const uniqueUrls = crawlData
+    ? new Set(crawlData.chunks.map(c => c.url))
+    : new Set<string>();
+  const totalWords = crawlData
+    ? crawlData.chunks.reduce((sum, chunk) => sum + chunk.word_count, 0)
+    : 0;
+  const topics = crawlData
+    ? [...new Set(crawlData.chunks.map(c => c.title).filter(t => t))].slice(
+        0,
+        10
+      )
+    : [];
+
+  return {
+    totalPages: crawlData?.metadata.total_pages ?? 0,
+    totalChunks: crawlData?.metadata.total_chunks ?? 0,
+    totalWords,
+    uniquePages: uniqueUrls.size,
+    contentTopics: topics,
+    crawlDuration: crawlData?.metadata.crawl_duration_seconds ?? 0,
+    productsIndexed: products.length,
+    agentsUsed: agentCount,
+    generationMethod: 'multi-agent',
+    crawledAt: new Date().toISOString(),
+  };
+};
+
+export const generateOrganizationContext = async (
+  ai: Ai,
+  crawlData: CrawlResponse | null,
+  products: ProductRecord[] = []
+): Promise<{ summary: string; metadata: Record<string, unknown> }> => {
+  const crawlChunks = crawlData?.chunks ?? [];
+
+  // If there is no data at all, return empty
+  if (crawlChunks.length === 0 && products.length === 0) {
+    return {
+      summary: '',
+      metadata: {
+        totalPages: 0,
+        totalChunks: 0,
+        totalWords: 0,
+        uniquePages: 0,
+        contentTopics: [],
+        crawlDuration: 0,
+        productsIndexed: 0,
+        crawledAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  try {
+    // Use multi-agent pipeline
+    const { context, agentResults } = await generateContextWithAgents(
+      ai,
+      'crow-ai-gateway',
+      crawlChunks,
+      products
+    );
+
+    if (context && context.length > 50) {
+      return {
+        summary: context,
+        metadata: buildContextMetadata(
+          crawlData,
+          products,
+          agentResults.length
+        ),
+      };
+    }
+
+    // If multi-agent produced insufficient output, fall back to legacy
+    console.warn(
+      '[context-generator] Multi-agent produced insufficient context, falling back to legacy'
+    );
+    return generateContextLegacy(ai, crawlData, products);
+  } catch (err) {
+    console.error(
+      '[context-generator] Multi-agent pipeline failed, falling back to legacy:',
+      err
+    );
+    return generateContextLegacy(ai, crawlData, products);
+  }
 };
