@@ -141,10 +141,20 @@ app.use(
   }
 );
 
-app.use('/api/v1/organizations/:id', async (c, next) =>
-  createJWTMiddleware(c.env)(c, next)
-);
-app.use('/api/v1/organizations/:id', requireOrganization());
+app.use('/api/v1/organizations/:id', async (c, next) => {
+  const internalKey = c.req.header('X-Internal-Key');
+  if (internalKey && c.env.INTERNAL_GATEWAY_KEY && internalKey === c.env.INTERNAL_GATEWAY_KEY) {
+    return next();
+  }
+  return createJWTMiddleware(c.env)(c, next);
+});
+app.use('/api/v1/organizations/:id', async (c, next) => {
+  const internalKey = c.req.header('X-Internal-Key');
+  if (internalKey && c.env.INTERNAL_GATEWAY_KEY && internalKey === c.env.INTERNAL_GATEWAY_KEY) {
+    return next();
+  }
+  return requireOrganization()(c, next);
+});
 app.use('/api/v1/organizations/:id/context/*', async (c, next) => {
   // Allow internal service-to-service calls (e.g. product service triggering context generation)
   const internalKey = c.req.header('X-Internal-Key');
